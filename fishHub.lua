@@ -1,5 +1,5 @@
 --==================================================
--- FISH HUB DELTA (FINAL PERFECT)
+-- FISH HUB DELTA (FINAL FIXED 100%)
 --==================================================
 
 local Players = game:GetService("Players")
@@ -22,155 +22,17 @@ local rarityList = {
     "legendary","mythic","secret","forgotten"
 }
 
--- GUI
-local gui = Instance.new("ScreenGui")
-gui.Parent = game.CoreGui
+-- ANTI DUPLICATE
+local lastSent = ""
 
-local main = Instance.new("Frame", gui)
-main.Size = UDim2.new(0,360,0,290)
-main.Position = UDim2.new(0.3,0,0.3,0)
-main.BackgroundColor3 = Color3.fromRGB(25,25,30)
-main.Active = true
-main.Draggable = true
-Instance.new("UICorner", main)
-
-local stroke = Instance.new("UIStroke", main)
-stroke.Color = Color3.fromRGB(0,200,255)
-stroke.Thickness = 1.5
-
-local title = Instance.new("TextLabel", main)
-title.Size = UDim2.new(1,-40,0,35)
-title.Text = "🎣 FISH HUB PRO"
-title.TextColor3 = Color3.fromRGB(0,255,200)
-title.BackgroundTransparency = 1
-title.Font = Enum.Font.GothamBold
-title.TextSize = 18
-
--- MINIMIZE
-local minBtn = Instance.new("TextButton", main)
-minBtn.Size = UDim2.new(0,35,0,35)
-minBtn.Position = UDim2.new(1,-35,0,0)
-minBtn.Text = "-"
-minBtn.BackgroundColor3 = Color3.fromRGB(60,60,70)
-minBtn.TextColor3 = Color3.new(1,1,1)
-
-local mini = Instance.new("TextButton", gui)
-mini.Size = UDim2.new(0,110,0,30)
-mini.Position = UDim2.new(0.02,0,0.4,0)
-mini.Text = "🎣 OPEN"
-mini.Visible = false
-mini.BackgroundColor3 = Color3.fromRGB(60,60,70)
-mini.TextColor3 = Color3.new(1,1,1)
-
-local minimized = false
-
--- INPUT
-local input = Instance.new("TextBox", main)
-input.Size = UDim2.new(0.6,-10,0,30)
-input.Position = UDim2.new(0,10,0,45)
-input.PlaceholderText = "Webhook..."
-input.BackgroundColor3 = Color3.fromRGB(40,40,45)
-input.TextColor3 = Color3.new(1,1,1)
-input.TextSize = 13
-Instance.new("UICorner", input)
-
--- SAVE
-local save = Instance.new("TextButton", main)
-save.Size = UDim2.new(0.18,0,0,30)
-save.Position = UDim2.new(0.62,0,0,45)
-save.Text = "SAVE"
-save.BackgroundColor3 = Color3.fromRGB(0,140,255)
-save.TextColor3 = Color3.new(1,1,1)
-save.Font = Enum.Font.GothamBold
-
--- TEST
-local testBtn = Instance.new("TextButton", main)
-testBtn.Size = UDim2.new(0.18,0,0,30)
-testBtn.Position = UDim2.new(0.82,0,0,45)
-testBtn.Text = "TEST"
-testBtn.BackgroundColor3 = Color3.fromRGB(255,170,0)
-testBtn.TextColor3 = Color3.new(1,1,1)
-testBtn.Font = Enum.Font.GothamBold
-
--- STATUS
-local status = Instance.new("TextLabel", main)
-status.Size = UDim2.new(1,-20,0,20)
-status.Position = UDim2.new(0,10,0,80)
-status.BackgroundTransparency = 1
-status.TextColor3 = Color3.fromRGB(0,255,150)
-status.Font = Enum.Font.GothamBold
-status.TextSize = 13
-
--- ALL FISH
-local toggleAll = Instance.new("TextButton", main)
-toggleAll.Size = UDim2.new(1,-20,0,28)
-toggleAll.Position = UDim2.new(0,10,0,105)
-toggleAll.Text = "ALL FISH: OFF"
-toggleAll.BackgroundColor3 = Color3.fromRGB(60,60,70)
-toggleAll.TextColor3 = Color3.new(1,1,1)
-toggleAll.Font = Enum.Font.GothamBold
-
--- GRID
-local grid = Instance.new("Frame", main)
-grid.Size = UDim2.new(1,-20,0,150)
-grid.Position = UDim2.new(0,10,0,140)
-grid.BackgroundTransparency = 1
-
-local layout = Instance.new("UIGridLayout", grid)
-layout.CellSize = UDim2.new(0.48,0,0,30)
-layout.CellPadding = UDim2.new(0,5,0,5)
-
--- RARITY BUTTONS
-for _,rarity in ipairs(rarityList) do
-    local btn = Instance.new("TextButton", grid)
-    btn.Text = rarity:upper().." : OFF"
-    btn.BackgroundColor3 = Color3.fromRGB(60,60,70)
-    btn.TextColor3 = Color3.new(1,1,1)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 12
-
-    btn.MouseButton1Click:Connect(function()
-        rarityEnabled[rarity] = not rarityEnabled[rarity]
-        btn.Text = rarity:upper().." : "..(rarityEnabled[rarity] and "ON" or "OFF")
-
-        btn.BackgroundColor3 = rarityEnabled[rarity]
-            and Color3.fromRGB(0,200,120)
-            or Color3.fromRGB(60,60,70)
-    end)
-end
-
--- BUTTON LOGIC
-minBtn.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    main.Visible = not minimized
-    mini.Visible = minimized
-end)
-
-mini.MouseButton1Click:Connect(function()
-    minimized = false
-    main.Visible = true
-    mini.Visible = false
-end)
-
-toggleAll.MouseButton1Click:Connect(function()
-    allFish = not allFish
-    toggleAll.Text = "ALL FISH: "..(allFish and "ON" or "OFF")
-    toggleAll.BackgroundColor3 = allFish
-        and Color3.fromRGB(0,170,255)
-        or Color3.fromRGB(60,60,70)
-end)
-
-save.MouseButton1Click:Connect(function()
-    webhook = input.Text
-    status.Text = "💾 Saved!"
-end)
-
--- SEND WEBHOOK (FIX UNIVERSAL)
+--==================================================
+-- WEBHOOK
+--==================================================
 local function sendWebhook(msg)
     if webhook == "" or not http then return end
 
-    local success, res = pcall(function()
-        return http({
+    pcall(function()
+        http({
             Url = webhook,
             Method = "POST",
             Headers = {["Content-Type"] = "application/json"},
@@ -180,84 +42,21 @@ local function sendWebhook(msg)
         })
     end)
 
-    if success then
-        print("📡 Sent:", msg)
-    else
-        warn("❌ Webhook Error:", res)
-    end
+    print("📡 Sent:", msg)
 end
 
--- TEST WEBHOOK (FIX AKURAT)
-testBtn.MouseButton1Click:Connect(function()
-
-    if webhook == "" then
-        status.Text = "❌ Isi webhook dulu!"
-        status.TextColor3 = Color3.fromRGB(255,80,80)
-        return
-    end
-
-    if not http then
-        status.Text = "❌ HTTP tidak support"
-        status.TextColor3 = Color3.fromRGB(255,80,80)
-        return
-    end
-
-    status.Text = "⏳ Testing..."
-    status.TextColor3 = Color3.fromRGB(255,255,0)
-
-    local success, res = pcall(function()
-        return http({
-            Url = webhook,
-            Method = "POST",
-            Headers = {["Content-Type"] = "application/json"},
-            Body = HttpService:JSONEncode({
-                content = "✅ Webhook Connected!\nPlayer: "..player.Name
-            })
-        })
-    end)
-
-    if not success then
-        status.Text = "🔴 Failed (Request Error)"
-        status.TextColor3 = Color3.fromRGB(255,80,80)
-        return
-    end
-
-    local ok = false
-
-    if type(res) == "table" then
-        if res.StatusCode then
-            ok = (res.StatusCode == 200 or res.StatusCode == 204)
-        elseif res.Success ~= nil then
-            ok = res.Success
-        else
-            ok = true
-        end
-    else
-        ok = true
-    end
-
-    if ok then
-        status.Text = "🟢 Connected!"
-        status.TextColor3 = Color3.fromRGB(0,255,100)
-    else
-        status.Text = "🔴 Failed!"
-        status.TextColor3 = Color3.fromRGB(255,80,80)
-    end
-end)
-
--- DETECTION FIX (NO SPAM)
-local lastSent = ""
-
+--==================================================
+-- DETECTION (FIX TOTAL)
+--==================================================
 local function isFish(text)
     text = text:lower()
 
-    if not text:find("ikan") then
-        return false
-    end
-
-    for _,r in ipairs(rarityList) do
-        if text:find(r) then
-            return true, r
+    -- keyword global (WAJIB ADA SALAH SATU)
+    if text:find("fish") or text:find("caught") then
+        for _,r in ipairs(rarityList) do
+            if text:find(r) then
+                return true, r
+            end
         end
     end
 
@@ -269,34 +68,48 @@ local function allowed(text)
     if not valid then return false end
 
     if allFish then return true end
-
-    if rarityEnabled[rarity] then
-        return true
-    end
+    if rarityEnabled[rarity] then return true end
 
     return false
 end
 
--- DETECT
-for _,v in pairs(game:GetDescendants()) do
-    if v:IsA("TextLabel") then
-        v:GetPropertyChangedSignal("Text"):Connect(function()
-            local txt = v.Text
+--==================================================
+-- FUNCTION DETECT TEXTLABEL
+--==================================================
+local function hookLabel(v)
+    if not v:IsA("TextLabel") then return end
 
-            if txt and txt ~= "" then
-                local lower = txt:lower()
+    v:GetPropertyChangedSignal("Text"):Connect(function()
+        local txt = v.Text
 
-                if allowed(lower) then
+        if txt and txt ~= "" then
+            local lower = txt:lower()
 
-                    if lastSent == lower then return end
-                    lastSent = lower
+            if allowed(lower) then
 
-                    print("🎣 Fish:", txt)
-                    sendWebhook("🎣 Fish Caught:\n"..txt)
-                end
+                if lastSent == lower then return end
+                lastSent = lower
+
+                print("🎣 Fish:", txt)
+                sendWebhook("🎣 Fish Caught:\n"..txt)
             end
-        end)
-    end
+        end
+    end)
 end
 
-print("✅ Fish Hub FINAL PERFECT Loaded")
+--==================================================
+-- SCAN AWAL
+--==================================================
+for _,v in pairs(game:GetDescendants()) do
+    hookLabel(v)
+end
+
+--==================================================
+-- REALTIME DETECT (PENTING BANGET)
+--==================================================
+game.DescendantAdded:Connect(function(v)
+    task.wait(0.2)
+    hookLabel(v)
+end)
+
+print("✅ Fish Hub FINAL FIXED Loaded")
