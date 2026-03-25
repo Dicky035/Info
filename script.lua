@@ -1,4 +1,4 @@
-request = request or http_request or (syn and syn.request)
+local request = request or http_request or (syn and syn.request)
 
 if not request then
     warn("Executor tidak support HTTP Request")
@@ -11,7 +11,10 @@ local StarterGui = game:GetService("StarterGui")
 
 local player = Players.LocalPlayer
 local PlayerGui = player:WaitForChild("PlayerGui")
-local backpack = player:WaitForChild("Backpack")
+
+-- SERVER INFO
+local serverId = game.JobId
+local placeId = game.PlaceId
 
 -- SAVE
 local fileName = "fish_webhook.txt"
@@ -21,10 +24,13 @@ local function saveWebhook(url)
     if writefile then writefile(fileName, url) end
 end
 
--- 🎯 RARITY
+-- MODE
+local allFishMode = false
+
+-- RARITY
 local rarityEnabled = {
-    common=false,uncommon=false,rare=false,epic=false,
-    legendary=true,mythic=true,secret=true,forgotten=true
+    common=false, uncommon=false, rare=false, epic=false,
+    legendary=false, mythic=false, secret=false, forgotten=false
 }
 
 local rarityOrder = {
@@ -32,7 +38,6 @@ local rarityOrder = {
     "legendary","mythic","secret","forgotten"
 }
 
--- 🎨 WARNA RARITY
 local rarityColors = {
     common = Color3.fromRGB(120,120,120),
     uncommon = Color3.fromRGB(0,200,0),
@@ -40,22 +45,65 @@ local rarityColors = {
     epic = Color3.fromRGB(170,0,255),
     legendary = Color3.fromRGB(255,200,0),
     mythic = Color3.fromRGB(255,50,50),
-    secret = Color3.fromRGB(64,224,208), -- TOSCA
-    forgotten = Color3.fromRGB(150,150,150) -- ABU
+    secret = Color3.fromRGB(64,224,208),
+    forgotten = Color3.fromRGB(150,150,150)
 }
 
 local cache = {}
 
--- INFO IKAN
-local function extractInfo(name)
-    local weight = name:match("(%d+%.?%d*%s?kg)")
-    local mutation = name:match("[Mm]utation[:%s]+([%w%s]+)")
+-- NORMALIZE
+local function normalizeFishName(name)
+    name = name:lower()
+    name = name:gsub("%d+%.?%d*%s?kg","")
+    name = name:gsub("[Mm]utation[:%s]+[%w%s]+","")
 
-    local result = "🐟 "..name
-    if weight then result = result.."\n⚖️ "..weight end
-    if mutation then result = result.."\n✨ "..mutation end
+    for _,r in ipairs(rarityOrder) do
+        name = name:gsub(r,"")
+    end
 
-    return result
+    return name:gsub("^%s+",""):gsub("%s+$","")
+end
+
+-- IMAGE
+local function getFishImage(name)
+    local clean = normalizeFishName(name)
+    clean = clean:gsub(" ", "_")
+    return "https://fish-it.fandom.com/wiki/Special:FilePath/"..clean..".png"
+end
+
+-- EXTRACT
+local function extractData(name)
+    local weight = name:match("(%d+%.?%d*%s?kg)") or "Unknown"
+    local mutation = name:match("[Mm]utation[:%s]+([%w%s]+)") or "None"
+    return weight, mutation
+end
+
+-- FILTER
+local function isUltra(text)
+    text = tostring(text):lower()
+    if allFishMode then return true end
+
+    for rarity, enabled in pairs(rarityEnabled) do
+        if enabled and text:find(rarity) then
+            return true
+        end
+    end
+    return false
+end
+
+-- COLOR
+local function getRarityColor(text)
+    text = tostring(text):lower()
+
+    for rarity, color in pairs(rarityColors) do
+        if text:find(rarity) then
+            return (math.floor(color.R*255) * 65536)
+                 + (math.floor(color.G*255) * 256)
+                 + math.floor(color.B*255)
+        end
+    end
+
+    return 16777215
 end
 
 -- NOTIF
@@ -69,28 +117,41 @@ local function notify(msg)
     end)
 end
 
--- FILTER
-local function isUltra(text)
-    text = tostring(text):lower()
-    for r,en in pairs(rarityEnabled) do
-        if en and text:find(r) then return true end
-    end
-    return false
-end
+-- WEBHOOK
+local function sendWebhook(text, playerName)
+    if webhook == "" then return end
 
--- 🚀 WEBHOOK ANTI GAGAL
-local function sendWebhook(text)
-    if webhook == "" then
-        warn("Webhook kosong!")
-        return
-    end
+    local weight, mutation = extractData(text)
 
-    local info = extractInfo(text)
-
-    if cache[info] then return end
-    cache[info] = true
+    local key = serverId.."|"..text
+    if cache[key] then return end
+    cache[key] = true
 
     notify("Mengirim ke webhook...")
+
+    local embed = {
+        title = "🎣 NBS FISH DETECTED",
+        color = getRarityColor(text),
+
+        image = {
+            url = getFishImage(text)
+        },
+
+        fields = {
+            {name = "👤 Player", value = playerName, inline = true},
+            {name = "🐟 Fish", value = normalizeFishName(text), inline = false},
+            {name = "⚖️ Weight", value = weight, inline = true},
+            {name = "✨ Mutation", value = mutation, inline = true},
+            {name = "🖥️ Server ID", value = serverId, inline = false},
+            {name = "🌍 Place ID", value = tostring(placeId), inline = false}
+        },
+
+        footer = {
+            text = "NBS HUB (SERVER LOCKED)"
+        },
+
+        timestamp = DateTime.now():ToIsoDate()
+    }
 
     for i=1,3 do
         local success = pcall(function()
@@ -99,164 +160,138 @@ local function sendWebhook(text)
                 Method = "POST",
                 Headers = {["Content-Type"] = "application/json"},
                 Body = HttpService:JSONEncode({
-                    content = "🎣 NBS LOG\n"..info
+                    embeds = {embed}
                 })
             })
         end)
 
-        if success then
-            print("✅ Webhook terkirim!")
-            break
-        else
-            warn("Retry "..i.." gagal")
-            task.wait(1)
-        end
-    end
-
-    if logBox then
-        logBox.Text = info.."\n\n"..logBox.Text
+        if success then break end
+        task.wait(1)
     end
 end
 
--- DETECT PLAYER
-local function watch(container)
-    container.ChildAdded:Connect(function(item)
-        task.wait(0.2)
-        if isUltra(item.Name) then
-            sendWebhook(item.Name)
+-- DETECT
+local function watchPlayer(plr)
+
+    local function hook(container)
+        container.ChildAdded:Connect(function(item)
+            task.wait(0.2)
+            if item and item.Name and isUltra(item.Name) then
+                sendWebhook(item.Name, plr.Name)
+            end
+        end)
+    end
+
+    if plr:FindFirstChild("Backpack") then
+        hook(plr.Backpack)
+    end
+
+    plr.ChildAdded:Connect(function(c)
+        if c.Name == "Backpack" then
+            hook(c)
         end
+    end)
+
+    plr.CharacterAdded:Connect(function(char)
+        hook(char)
     end)
 end
 
-watch(backpack)
-player.CharacterAdded:Connect(watch)
+for _,plr in ipairs(Players:GetPlayers()) do
+    watchPlayer(plr)
+end
 
--- UI
+Players.PlayerAdded:Connect(function(plr)
+    watchPlayer(plr)
+end)
+
+-- ================= UI HUB =================
+
 local gui = Instance.new("ScreenGui", PlayerGui)
 
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.new(0,250,0,360)
-main.Position = UDim2.new(0.35,0,0.25,0)
-main.BackgroundColor3 = Color3.fromRGB(15,15,18)
+main.Size = UDim2.new(0,280,0,420)
+main.Position = UDim2.new(0.35,0,0.2,0)
+main.BackgroundColor3 = Color3.fromRGB(18,18,22)
 main.Active = true
 main.Draggable = true
 Instance.new("UICorner", main)
 
--- HEADER
 local title = Instance.new("TextLabel", main)
 title.Size = UDim2.new(1,0,0,40)
-title.Text = "NBS PANEL"
-title.Font = Enum.Font.GothamBold
-title.TextSize = 18
-title.TextColor3 = Color3.fromRGB(0,255,170)
+title.Text = "🎣 NBS HUB"
 title.BackgroundTransparency = 1
+title.TextColor3 = Color3.fromRGB(255,255,255)
 
--- MINIMIZE
-local minimize = Instance.new("TextButton", main)
-minimize.Size = UDim2.new(0,30,0,30)
-minimize.Position = UDim2.new(1,-35,0,5)
-minimize.Text = "-"
-minimize.Font = Enum.Font.GothamBold
-minimize.TextSize = 18
-minimize.BackgroundColor3 = Color3.fromRGB(40,40,45)
+local status = Instance.new("TextLabel", main)
+status.Size = UDim2.new(1,0,0,20)
+status.Position = UDim2.new(0,0,0,40)
+status.Text = "Status: Idle"
+status.BackgroundTransparency = 1
+status.TextColor3 = Color3.fromRGB(150,150,150)
 
--- ICON
-local icon = Instance.new("ImageButton", gui)
-icon.Size = UDim2.new(0,50,0,50)
-icon.Position = UDim2.new(0.4,0,0.3,0)
-icon.Image = "rbxassetid://7733960981"
-icon.Visible = false
-icon.Active = true
-icon.Draggable = true
-Instance.new("UICorner", icon)
-
-minimize.MouseButton1Click:Connect(function()
-    main.Visible = false
-    icon.Visible = true
-end)
-
-icon.MouseButton1Click:Connect(function()
-    main.Visible = true
-    icon.Visible = false
-end)
-
--- INPUT
 local input = Instance.new("TextBox", main)
 input.Size = UDim2.new(1,-20,0,30)
-input.Position = UDim2.new(0,10,0,50)
+input.Position = UDim2.new(0,10,0,70)
 input.Text = webhook
 input.PlaceholderText = "Webhook..."
-input.Font = Enum.Font.Gotham
-input.TextSize = 14
-input.TextColor3 = Color3.new(1,1,1)
 input.BackgroundColor3 = Color3.fromRGB(30,30,35)
 Instance.new("UICorner", input)
 
--- SAVE
 local save = Instance.new("TextButton", main)
-save.Size = UDim2.new(1,-20,0,28)
-save.Position = UDim2.new(0,10,0,90)
+save.Size = UDim2.new(1,-20,0,30)
+save.Position = UDim2.new(0,10,0,110)
 save.Text = "SAVE WEBHOOK"
-save.Font = Enum.Font.GothamBold
-save.TextSize = 14
-save.BackgroundColor3 = Color3.fromRGB(0,200,140)
+save.BackgroundColor3 = Color3.fromRGB(0,120,255)
+Instance.new("UICorner", save)
 
 save.MouseButton1Click:Connect(function()
     webhook = input.Text
     saveWebhook(webhook)
+    status.Text = "Status: Webhook Saved"
     notify("Webhook tersimpan!")
 end)
 
--- TEST
-local test = Instance.new("TextButton", main)
-test.Size = UDim2.new(1,-20,0,28)
-test.Position = UDim2.new(0,10,0,125)
-test.Text = "TEST WEBHOOK"
-test.Font = Enum.Font.GothamBold
-test.TextSize = 14
-test.BackgroundColor3 = Color3.fromRGB(0,140,255)
+local toggleAll = Instance.new("TextButton", main)
+toggleAll.Size = UDim2.new(1,-20,0,30)
+toggleAll.Position = UDim2.new(0,10,0,150)
+toggleAll.Text = "ALL FISH: OFF"
+toggleAll.BackgroundColor3 = Color3.fromRGB(50,50,50)
+Instance.new("UICorner", toggleAll)
 
-test.MouseButton1Click:Connect(function()
-    sendWebhook("TEST LEGENDARY FISH 10kg Mutation Fire")
+toggleAll.MouseButton1Click:Connect(function()
+    allFishMode = not allFishMode
+    toggleAll.Text = "ALL FISH: "..(allFishMode and "ON" or "OFF")
+    toggleAll.BackgroundColor3 = allFishMode and Color3.fromRGB(0,170,0) or Color3.fromRGB(50,50,50)
 end)
 
--- 🎨 RARITY BUTTON
-local y = 160
-for _,r in ipairs(rarityOrder) do
+local y = 190
+for _,rarity in ipairs(rarityOrder) do
     local btn = Instance.new("TextButton", main)
-    btn.Size = UDim2.new(1,-20,0,25)
+    btn.Size = UDim2.new(1,-20,0,28)
     btn.Position = UDim2.new(0,10,0,y)
-
-    btn.Text = (rarityEnabled[r] and "ON " or "OFF ")..r
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 13
-    btn.TextColor3 = Color3.new(1,1,1)
-
-    btn.BackgroundColor3 = rarityEnabled[r] and rarityColors[r] or Color3.fromRGB(40,40,45)
-
+    btn.Text = rarity:upper().." : OFF"
+    btn.BackgroundColor3 = Color3.fromRGB(40,40,45)
     Instance.new("UICorner", btn)
 
     btn.MouseButton1Click:Connect(function()
-        rarityEnabled[r] = not rarityEnabled[r]
-
-        btn.Text = (rarityEnabled[r] and "ON " or "OFF ")..r
-        btn.BackgroundColor3 = rarityEnabled[r] and rarityColors[r] or Color3.fromRGB(40,40,45)
+        rarityEnabled[rarity] = not rarityEnabled[rarity]
+        btn.Text = rarity:upper().." : "..(rarityEnabled[rarity] and "ON" or "OFF")
+        btn.BackgroundColor3 = rarityEnabled[rarity] and rarityColors[rarity] or Color3.fromRGB(40,40,45)
     end)
 
-    y = y + 28
+    y = y + 32
 end
 
--- LOG
-logBox = Instance.new("TextLabel", main)
-logBox.Size = UDim2.new(1,-20,0,70)
-logBox.Position = UDim2.new(0,10,1,-80)
-logBox.BackgroundColor3 = Color3.fromRGB(25,25,30)
-logBox.TextColor3 = Color3.new(1,1,1)
-logBox.Font = Enum.Font.Code
-logBox.TextSize = 12
-logBox.TextXAlignment = Enum.TextXAlignment.Left
-logBox.TextYAlignment = Enum.TextYAlignment.Top
-logBox.Text = "Waiting..."
-Instance.new("UICorner", logBox)
+local close = Instance.new("TextButton", main)
+close.Size = UDim2.new(0,30,0,30)
+close.Position = UDim2.new(1,-35,0,5)
+close.Text = "X"
+close.BackgroundColor3 = Color3.fromRGB(170,0,0)
+Instance.new("UICorner", close)
 
-print("🔥 NBS FINAL COLOR VERSION AKTIF!")
+close.MouseButton1Click:Connect(function()
+    gui:Destroy()
+end)
+
+print("🔥 NBS HUB FULL VERSION AKTIF!")
