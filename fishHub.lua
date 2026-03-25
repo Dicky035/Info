@@ -1,5 +1,5 @@
 --==================================================
--- FISH HUB DELTA (COMPACT HORIZONTAL UI)
+-- FISH HUB DELTA (FINAL ULTIMATE)
 --==================================================
 
 local Players = game:GetService("Players")
@@ -27,7 +27,7 @@ local gui = Instance.new("ScreenGui")
 gui.Parent = game.CoreGui
 
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.new(0,360,0,260) -- lebih kecil
+main.Size = UDim2.new(0,360,0,290)
 main.Position = UDim2.new(0.3,0,0.3,0)
 main.BackgroundColor3 = Color3.fromRGB(25,25,30)
 main.Active = true
@@ -78,33 +78,51 @@ Instance.new("UICorner", input)
 
 -- SAVE
 local save = Instance.new("TextButton", main)
-save.Size = UDim2.new(0.35,-10,0,30)
-save.Position = UDim2.new(0.65,0,0,45)
+save.Size = UDim2.new(0.18,0,0,30)
+save.Position = UDim2.new(0.62,0,0,45)
 save.Text = "SAVE"
 save.BackgroundColor3 = Color3.fromRGB(0,140,255)
 save.TextColor3 = Color3.new(1,1,1)
 save.Font = Enum.Font.GothamBold
 
+-- TEST BUTTON
+local testBtn = Instance.new("TextButton", main)
+testBtn.Size = UDim2.new(0.18,0,0,30)
+testBtn.Position = UDim2.new(0.82,0,0,45)
+testBtn.Text = "TEST"
+testBtn.BackgroundColor3 = Color3.fromRGB(255,170,0)
+testBtn.TextColor3 = Color3.new(1,1,1)
+testBtn.Font = Enum.Font.GothamBold
+
+-- STATUS
+local status = Instance.new("TextLabel", main)
+status.Size = UDim2.new(1,-20,0,20)
+status.Position = UDim2.new(0,10,0,80)
+status.BackgroundTransparency = 1
+status.TextColor3 = Color3.fromRGB(0,255,150)
+status.Font = Enum.Font.GothamBold
+status.TextSize = 13
+
 -- ALL FISH
 local toggleAll = Instance.new("TextButton", main)
 toggleAll.Size = UDim2.new(1,-20,0,28)
-toggleAll.Position = UDim2.new(0,10,0,85)
+toggleAll.Position = UDim2.new(0,10,0,105)
 toggleAll.Text = "ALL FISH: OFF"
 toggleAll.BackgroundColor3 = Color3.fromRGB(60,60,70)
 toggleAll.TextColor3 = Color3.new(1,1,1)
 toggleAll.Font = Enum.Font.GothamBold
 
--- RARITY GRID
+-- GRID
 local grid = Instance.new("Frame", main)
-grid.Size = UDim2.new(1,-20,0,120)
-grid.Position = UDim2.new(0,10,0,120)
+grid.Size = UDim2.new(1,-20,0,150)
+grid.Position = UDim2.new(0,10,0,140)
 grid.BackgroundTransparency = 1
 
 local layout = Instance.new("UIGridLayout", grid)
-layout.CellSize = UDim2.new(0.48,0,0,30) -- 2 kolom
+layout.CellSize = UDim2.new(0.48,0,0,30)
 layout.CellPadding = UDim2.new(0,5,0,5)
 
--- BUTTON RARITY
+-- RARITY BUTTONS
 for _,rarity in ipairs(rarityList) do
     local btn = Instance.new("TextButton", grid)
     btn.Text = rarity:upper().." : OFF"
@@ -123,7 +141,7 @@ for _,rarity in ipairs(rarityList) do
     end)
 end
 
--- LOGIC BUTTON
+-- BUTTON LOGIC
 minBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     main.Visible = not minimized
@@ -146,9 +164,48 @@ end)
 
 save.MouseButton1Click:Connect(function()
     webhook = input.Text
+    status.Text = "💾 Saved!"
 end)
 
--- WEBHOOK
+-- TEST WEBHOOK
+testBtn.MouseButton1Click:Connect(function()
+
+    if webhook == "" then
+        status.Text = "❌ Isi webhook dulu!"
+        status.TextColor3 = Color3.fromRGB(255,80,80)
+        return
+    end
+
+    if not http then
+        status.Text = "❌ HTTP tidak support"
+        status.TextColor3 = Color3.fromRGB(255,80,80)
+        return
+    end
+
+    status.Text = "⏳ Testing..."
+    status.TextColor3 = Color3.fromRGB(255,255,0)
+
+    local success = pcall(function()
+        http({
+            Url = webhook,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = HttpService:JSONEncode({
+                content = "✅ Webhook Connected!\nPlayer: "..player.Name
+            })
+        })
+    end)
+
+    if success then
+        status.Text = "🟢 Connected!"
+        status.TextColor3 = Color3.fromRGB(0,255,100)
+    else
+        status.Text = "🔴 Failed!"
+        status.TextColor3 = Color3.fromRGB(255,80,80)
+    end
+end)
+
+-- WEBHOOK SEND
 local function sendWebhook(msg)
     if webhook == "" or not http then return end
 
@@ -192,4 +249,4 @@ for _,v in pairs(game:GetDescendants()) do
     end
 end
 
-print("✅ Fish Hub Compact Loaded")
+print("✅ Fish Hub Ultimate Loaded")
