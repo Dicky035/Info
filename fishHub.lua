@@ -1,5 +1,5 @@
 --==================================================
--- FISH HUB DELTA (FINAL PRO UI)
+-- FISH HUB DELTA (COMPACT HORIZONTAL UI)
 --==================================================
 
 local Players = game:GetService("Players")
@@ -27,8 +27,8 @@ local gui = Instance.new("ScreenGui")
 gui.Parent = game.CoreGui
 
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.new(0,320,0,460)
-main.Position = UDim2.new(0.35,0,0.2,0)
+main.Size = UDim2.new(0,360,0,260) -- lebih kecil
+main.Position = UDim2.new(0.3,0,0.3,0)
 main.BackgroundColor3 = Color3.fromRGB(25,25,30)
 main.Active = true
 main.Draggable = true
@@ -41,26 +41,25 @@ stroke.Thickness = 1.5
 
 -- TITLE
 local title = Instance.new("TextLabel", main)
-title.Size = UDim2.new(1,-40,0,40)
+title.Size = UDim2.new(1,-40,0,35)
 title.Text = "🎣 FISH HUB PRO"
 title.TextColor3 = Color3.fromRGB(0,255,200)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
-title.TextSize = 20
+title.TextSize = 18
 
--- MINIMIZE BUTTON
+-- MINIMIZE
 local minBtn = Instance.new("TextButton", main)
-minBtn.Size = UDim2.new(0,40,0,40)
-minBtn.Position = UDim2.new(1,-40,0,0)
+minBtn.Size = UDim2.new(0,35,0,35)
+minBtn.Position = UDim2.new(1,-35,0,0)
 minBtn.Text = "-"
 minBtn.BackgroundColor3 = Color3.fromRGB(60,60,70)
 minBtn.TextColor3 = Color3.new(1,1,1)
 
--- MINI ICON
 local mini = Instance.new("TextButton", gui)
-mini.Size = UDim2.new(0,120,0,35)
+mini.Size = UDim2.new(0,110,0,30)
 mini.Position = UDim2.new(0.02,0,0.4,0)
-mini.Text = "🎣 OPEN HUB"
+mini.Text = "🎣 OPEN"
 mini.Visible = false
 mini.BackgroundColor3 = Color3.fromRGB(60,60,70)
 mini.TextColor3 = Color3.new(1,1,1)
@@ -69,63 +68,50 @@ local minimized = false
 
 -- INPUT
 local input = Instance.new("TextBox", main)
-input.Size = UDim2.new(1,-20,0,35)
-input.Position = UDim2.new(0,10,0,50)
-input.PlaceholderText = "Webhook URL..."
+input.Size = UDim2.new(0.6,-10,0,30)
+input.Position = UDim2.new(0,10,0,45)
+input.PlaceholderText = "Webhook..."
 input.BackgroundColor3 = Color3.fromRGB(40,40,45)
 input.TextColor3 = Color3.new(1,1,1)
-input.TextSize = 14
+input.TextSize = 13
 Instance.new("UICorner", input)
 
 -- SAVE
 local save = Instance.new("TextButton", main)
-save.Size = UDim2.new(1,-20,0,35)
-save.Position = UDim2.new(0,10,0,95)
+save.Size = UDim2.new(0.35,-10,0,30)
+save.Position = UDim2.new(0.65,0,0,45)
 save.Text = "SAVE"
 save.BackgroundColor3 = Color3.fromRGB(0,140,255)
 save.TextColor3 = Color3.new(1,1,1)
-save.TextSize = 14
 save.Font = Enum.Font.GothamBold
-
--- STATUS
-local status = Instance.new("TextLabel", main)
-status.Size = UDim2.new(1,0,0,20)
-status.Position = UDim2.new(0,0,0,135)
-status.BackgroundTransparency = 1
-status.TextColor3 = Color3.fromRGB(0,255,150)
-status.TextSize = 14
-status.Font = Enum.Font.GothamBold
 
 -- ALL FISH
 local toggleAll = Instance.new("TextButton", main)
-toggleAll.Size = UDim2.new(1,-20,0,30)
-toggleAll.Position = UDim2.new(0,10,0,160)
+toggleAll.Size = UDim2.new(1,-20,0,28)
+toggleAll.Position = UDim2.new(0,10,0,85)
 toggleAll.Text = "ALL FISH: OFF"
 toggleAll.BackgroundColor3 = Color3.fromRGB(60,60,70)
 toggleAll.TextColor3 = Color3.new(1,1,1)
-toggleAll.TextSize = 14
 toggleAll.Font = Enum.Font.GothamBold
 
--- SCROLL
-local scroll = Instance.new("ScrollingFrame", main)
-scroll.Size = UDim2.new(1,-20,0,220)
-scroll.Position = UDim2.new(0,10,0,200)
-scroll.CanvasSize = UDim2.new(0,0,0,400)
-scroll.BackgroundColor3 = Color3.fromRGB(30,30,35)
-Instance.new("UICorner", scroll)
+-- RARITY GRID
+local grid = Instance.new("Frame", main)
+grid.Size = UDim2.new(1,-20,0,120)
+grid.Position = UDim2.new(0,10,0,120)
+grid.BackgroundTransparency = 1
 
-local layout = Instance.new("UIListLayout", scroll)
-layout.Padding = UDim.new(0,5)
+local layout = Instance.new("UIGridLayout", grid)
+layout.CellSize = UDim2.new(0.48,0,0,30) -- 2 kolom
+layout.CellPadding = UDim2.new(0,5,0,5)
 
--- RARITY BUTTONS
+-- BUTTON RARITY
 for _,rarity in ipairs(rarityList) do
-    local btn = Instance.new("TextButton", scroll)
-    btn.Size = UDim2.new(1,-10,0,30)
+    local btn = Instance.new("TextButton", grid)
     btn.Text = rarity:upper().." : OFF"
     btn.BackgroundColor3 = Color3.fromRGB(60,60,70)
     btn.TextColor3 = Color3.new(1,1,1)
-    btn.TextSize = 14
     btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 12
 
     btn.MouseButton1Click:Connect(function()
         rarityEnabled[rarity] = not rarityEnabled[rarity]
@@ -137,7 +123,7 @@ for _,rarity in ipairs(rarityList) do
     end)
 end
 
--- BUTTON LOGIC
+-- LOGIC BUTTON
 minBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     main.Visible = not minimized
@@ -160,9 +146,6 @@ end)
 
 save.MouseButton1Click:Connect(function()
     webhook = input.Text
-    status.Text = "Saved!"
-    task.wait(1.5)
-    status.Text = ""
 end)
 
 -- WEBHOOK
@@ -209,4 +192,4 @@ for _,v in pairs(game:GetDescendants()) do
     end
 end
 
-print("✅ Fish Hub Pro Loaded")
+print("✅ Fish Hub Compact Loaded")
