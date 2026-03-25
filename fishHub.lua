@@ -1,5 +1,5 @@
 --==================================================
--- FISH HUB DELTA (FINAL ULTIMATE)
+-- FISH HUB DELTA (FINAL CLEAN NO SPAM)
 --==================================================
 
 local Players = game:GetService("Players")
@@ -34,12 +34,10 @@ main.Active = true
 main.Draggable = true
 Instance.new("UICorner", main)
 
--- STROKE
 local stroke = Instance.new("UIStroke", main)
 stroke.Color = Color3.fromRGB(0,200,255)
 stroke.Thickness = 1.5
 
--- TITLE
 local title = Instance.new("TextLabel", main)
 title.Size = UDim2.new(1,-40,0,35)
 title.Text = "🎣 FISH HUB PRO"
@@ -85,7 +83,7 @@ save.BackgroundColor3 = Color3.fromRGB(0,140,255)
 save.TextColor3 = Color3.new(1,1,1)
 save.Font = Enum.Font.GothamBold
 
--- TEST BUTTON
+-- TEST
 local testBtn = Instance.new("TextButton", main)
 testBtn.Size = UDim2.new(0.18,0,0,30)
 testBtn.Position = UDim2.new(0.82,0,0,45)
@@ -205,7 +203,7 @@ testBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- WEBHOOK SEND
+-- SEND WEBHOOK
 local function sendWebhook(msg)
     if webhook == "" or not http then return end
 
@@ -214,21 +212,38 @@ local function sendWebhook(msg)
         Method = "POST",
         Headers = {["Content-Type"] = "application/json"},
         Body = HttpService:JSONEncode({
-            content = "🎣 "..msg
+            content = msg
         })
     })
 end
 
--- FILTER
-local function allowed(text)
+-- DETECTION FIX
+local lastSent = ""
+
+local function isFish(text)
     text = text:lower()
+
+    if not text:find("ikan") then
+        return false
+    end
+
+    for _,r in ipairs(rarityList) do
+        if text:find(r) then
+            return true, r
+        end
+    end
+
+    return false
+end
+
+local function allowed(text)
+    local valid, rarity = isFish(text)
+    if not valid then return false end
 
     if allFish then return true end
 
-    for r,v in pairs(rarityEnabled) do
-        if v and text:find(r) then
-            return true
-        end
+    if rarityEnabled[rarity] then
+        return true
     end
 
     return false
@@ -239,14 +254,22 @@ for _,v in pairs(game:GetDescendants()) do
     if v:IsA("TextLabel") then
         v:GetPropertyChangedSignal("Text"):Connect(function()
             local txt = v.Text
+
             if txt and txt ~= "" then
-                if allowed(txt) then
-                    print("🎣 Detected:", txt)
-                    sendWebhook(txt)
+                local lower = txt:lower()
+
+                if allowed(lower) then
+
+                    if lastSent == lower then return end
+                    lastSent = lower
+
+                    print("🎣 Fish Detected:", txt)
+
+                    sendWebhook("🎣 Fish Caught:\n"..txt)
                 end
             end
         end)
     end
 end
 
-print("✅ Fish Hub Ultimate Loaded")
+print("✅ Fish Hub FINAL CLEAN Loaded")
