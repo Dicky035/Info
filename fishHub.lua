@@ -1,5 +1,5 @@
 --==================================================
--- FISH HUB DELTA (FINAL CLEAN NO SPAM)
+-- FISH HUB DELTA (FINAL PERFECT)
 --==================================================
 
 local Players = game:GetService("Players")
@@ -165,7 +165,29 @@ save.MouseButton1Click:Connect(function()
     status.Text = "💾 Saved!"
 end)
 
--- TEST WEBHOOK
+-- SEND WEBHOOK (FIX UNIVERSAL)
+local function sendWebhook(msg)
+    if webhook == "" or not http then return end
+
+    local success, res = pcall(function()
+        return http({
+            Url = webhook,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = HttpService:JSONEncode({
+                content = msg
+            })
+        })
+    end)
+
+    if success then
+        print("📡 Sent:", msg)
+    else
+        warn("❌ Webhook Error:", res)
+    end
+end
+
+-- TEST WEBHOOK (FIX AKURAT)
 testBtn.MouseButton1Click:Connect(function()
 
     if webhook == "" then
@@ -183,8 +205,8 @@ testBtn.MouseButton1Click:Connect(function()
     status.Text = "⏳ Testing..."
     status.TextColor3 = Color3.fromRGB(255,255,0)
 
-    local success = pcall(function()
-        http({
+    local success, res = pcall(function()
+        return http({
             Url = webhook,
             Method = "POST",
             Headers = {["Content-Type"] = "application/json"},
@@ -194,7 +216,27 @@ testBtn.MouseButton1Click:Connect(function()
         })
     end)
 
-    if success then
+    if not success then
+        status.Text = "🔴 Failed (Request Error)"
+        status.TextColor3 = Color3.fromRGB(255,80,80)
+        return
+    end
+
+    local ok = false
+
+    if type(res) == "table" then
+        if res.StatusCode then
+            ok = (res.StatusCode == 200 or res.StatusCode == 204)
+        elseif res.Success ~= nil then
+            ok = res.Success
+        else
+            ok = true
+        end
+    else
+        ok = true
+    end
+
+    if ok then
         status.Text = "🟢 Connected!"
         status.TextColor3 = Color3.fromRGB(0,255,100)
     else
@@ -203,21 +245,7 @@ testBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- SEND WEBHOOK
-local function sendWebhook(msg)
-    if webhook == "" or not http then return end
-
-    http({
-        Url = webhook,
-        Method = "POST",
-        Headers = {["Content-Type"] = "application/json"},
-        Body = HttpService:JSONEncode({
-            content = msg
-        })
-    })
-end
-
--- DETECTION FIX
+-- DETECTION FIX (NO SPAM)
 local lastSent = ""
 
 local function isFish(text)
@@ -263,8 +291,7 @@ for _,v in pairs(game:GetDescendants()) do
                     if lastSent == lower then return end
                     lastSent = lower
 
-                    print("🎣 Fish Detected:", txt)
-
+                    print("🎣 Fish:", txt)
                     sendWebhook("🎣 Fish Caught:\n"..txt)
                 end
             end
@@ -272,4 +299,4 @@ for _,v in pairs(game:GetDescendants()) do
     end
 end
 
-print("✅ Fish Hub FINAL CLEAN Loaded")
+print("✅ Fish Hub FINAL PERFECT Loaded")
